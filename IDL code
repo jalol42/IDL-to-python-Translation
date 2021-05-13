@@ -1,0 +1,146 @@
+
+wdir5='/home/udis/Task/Data/'; choose the right folder
+
+uu=file_search(wdir5)
+
+for i=0,n_elements(uu)-1 do begin
+
+  wdir=strjoin([string(uu[i]),'/'])
+
+restore,wdir+'Jz_2011-02-15T013412.sav'
+
+nnn=size(jz)
+
+file=file_search(strjoin([string(wdir),'*Bp*.fits']))
+read_sdo,file,index_Bp,data_Bp,/uncomp_delete
+
+nnn1=nnn[1]
+nnn2=nnn[2]
+
+help,nnn1,nnn2
+
+;lie=nnn1/12
+;hang=nnn2/8
+
+lie=nnn1/4
+hang=nnn2/4
+
+;=============================================================
+;jf=jz[0:lie,0:hang]nnn1/12
+jf=jz[400:600,20:100]; choose the non-flaring region in the rectangular box
+print,max(jf),min(jf)
+a1=max(jf)
+a2=min(jf)
+
+;jf=jz[nnn1-lie:nnn1-1,0:hang-1]
+
+jz_variance=stddev(abs(jf))
+;save,filename=wdir+'jz_variance.sav',jz_variance
+
+help,jz_variance
+
+x=nnn1-lie
+y=hang
+
+;shu_xx=[x,x]
+;shu_yy=[0,y]
+
+;heng_xx=[0,x]
+;heng_yy=[y,y]
+
+
+;kj=jz[dims[0]-200:dims[0]-50,0:100]
+
+;x1=dims[0]-200
+;x2=dims[0]-50
+
+;y1=0
+;y2=100
+
+column=2
+row=1
+
+pos=multi_pos(column,1,left_margin=0.04,right_margin=0.001,top_margin=0,bottom_margin=0,xmargin=0.042,ymargin=0)
+
+!p.multi=[0,column,row]
+
+set_plot, 'X'
+
+;!p.position=pos[*,2,0]
+
+!p.position=pos[*,0,0]
+LOAD_VEL;,gamma=2
+;PLOT_IMAGE,jz,xtitle='mA/m!U2',back=128,col=0,title='jz distribution';,charsize=2
+
+;------------------------------------------------------------
+jz_real=jz
+
+jz_ploty=bytscl(jz_real)
+
+ll=size(jz,/dim)
+
+PLOT_IMAGE,jz_ploty,title=string(index_Bp.T_OBS),xtitle='jz (mA/m!U2!N)',back=128,col=0
+
+;a1=min(jz_ploty)
+;a2=max(jz_ploty)
+
+;help,a1,a2
+;print,min(jz_ploty)
+;print,max(jz_ploty)
+
+; Including color bar at the top of Jz_map
+cgColorbar,Divisions=4,Minor=5,Format='(F0.2)',Range=[min(jz_ploty),max(jz_ploty)],position=[0.05,0.85,0.5,0.9],charsize=0.5
+
+;------------------------------------------------------------------------
+yy=findgen(y-1)
+xx=replicate(x,n_elements(yy))
+xyouts,xx,yy,'|',/data
+;___________________________________________________________
+
+;xx2=findgen(x-1)
+
+xx2=nnn1-lie+findgen(lie-1)
+
+yy2=replicate(y,n_elements(xx2))
+xyouts,xx2,yy2,'-',/data
+
+;-----------------------jz完成---------------------------
+BINSIZE=2
+!p.position=pos[*,1,0]
+;print,jf
+cgHistoplot,jf,/FILL, HISTDATA=h, LOCATIONS=loc, BINSIZE=binsize,charsize=0.8,ytitle='Number of pixels';,max_value=1000;,
+binCenters = loc + (binsize / 2.0)
+;cgHistoplot,imm_cea,/FILL, HISTDATA=h, LOCATIONS=loc, BINSIZE=binsize
+
+;nnn1-lie:nnn1-1,0:hang
+
+yg1=nnn1-1-(nnn1-lie)
+yg2=hang
+
+yfit = GaussFit(binCenters, h, Acoeff, NTERMS=3)
+
+help,Acoeff
+
+A2=Acoeff[2]
+A1=Acoeff[1]
+title='string(A2)'
+
+jz_sigma=A2
+
+;save,filename=wdir+'jz_sigma.sav',jz_sigma; SOHRANENIYE SIGMY
+
+cgPlot, binCenters, yfit, COLOR='0', /OVERPLOT;,legends=string(A2);,title='string(A2)' FITTING LINE
+
+xyouts,0.82,0.7,strcompress('!Ms!X'+'='+string(A2),/remove_all),/normal
+
+x=A1
+linecolors
+vline,x,/data,color=9,linestyle=1
+;hline,y,/data,color=8
+
+vline,x+A2,/data,color=2,linestyle=1
+vline,x-A2,/data,color=2,linestyle=1
+
+endfor
+
+end
